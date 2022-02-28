@@ -683,7 +683,9 @@ export function isPointInsideRect(rect, point){
     deepArgs.width = rect.size || rect.width || 10
     deepArgs.height = rect.size || rect.height || 10
     deepArgs.centered = rect.centered || false
-    deepArgs.rotation = rect.rotation || 0
+    deepArgs.rotation = rect.rotation || rect.piRotation * (180 / Math.PI) || 0
+    deepArgs.xRotationOffset = rect.xRotationOffset || 0
+    deepArgs.yRotationOffset = rect.yRotationOffset || 0
 
     // validate inputs
     if(typeof deepArgs.x != "number"){
@@ -706,8 +708,16 @@ export function isPointInsideRect(rect, point){
         console.error("Invalid centered value", deepArgs.centered)
         return
     }
-    if(typeof deepArgs.rotation != "number" || deepArgs.rotation <= 0){
+    if(typeof deepArgs.rotation != "number" || deepArgs.rotation < 0){
         console.error("Invalid rotation value", deepArgs.rotation)
+        return
+    }
+    if(typeof deepArgs.xRotationOffset != "number"){
+        console.error("Invalid xRotationOffset value", deepArgs.xRotationOffset)
+        return
+    }
+    if(typeof deepArgs.yRotationOffset != "number"){
+        console.error("Invalid yRotationOffset value", deepArgs.yRotationOffset)
         return
     }
 
@@ -736,7 +746,7 @@ export function isPointInsideRect(rect, point){
     ctx.translate(-1 * (deepArgs.x + (deepArgs.width / 2)), -1 * (deepArgs.y + (deepArgs.height / 2)));
 
     ctx.beginPath()
-    ctx.rect(deepArgs.x, deepArgs.y, deepArgs.width, deepArgs.height)
+    ctx.rect(deepArgs.x + deepArgs.xRotationOffset, deepArgs.y + deepArgs.yRotationOffset, deepArgs.width, deepArgs.height)
 
     let isPointInPath = ctx.isPointInPath(deepArgs.pointX, deepArgs.pointY)
 
