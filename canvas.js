@@ -49,23 +49,12 @@ export function background(color){
 export function randomColor(){
 
     // generates random color values
-    const r = Math.floor(Math.random() * 255)
-    const g = Math.floor(Math.random() * 255)
-    const b = Math.floor(Math.random() * 255)
+    let r = Math.floor(Math.random() * 255).toString(16).padStart(2, '0')
+    let g = Math.floor(Math.random() * 255).toString(16).padStart(2, '0')
+    let b = Math.floor(Math.random() * 255).toString(16).padStart(2, '0')
 
     // returns color
-    return `RGB(${r}, ${g}, ${b})`
-}
-export function randomAlphaColor(){
-
-    // generates random color values
-    const r = Math.floor(Math.random() * 255)
-    const g = Math.floor(Math.random() * 255)
-    const b = Math.floor(Math.random() * 255)
-    const a = Math.random()
-
-    // returns color
-    return `RGBA(${r}, ${g}, ${b}, ${a})`
+    return `#${r}${g}${b}`
 }
 
 export function divide(direction, devisor = 1){
@@ -127,6 +116,7 @@ export function drawCircle(args){
     deepArgs.fill = args.fill || 'RGBA(0, 0, 0, 0)'
     deepArgs.stroke = args.stroke || 'RGBA(0, 0, 0, 0)'
     deepArgs.lineWidth = args.lineWidth || 1
+    deepArgs.drawFuncs = args.drawFuncs || []
 
     // resizes circle if there is a stroke
     if(deepArgs.stroke != 'RGBA(0, 0, 0, 0)'){
@@ -158,6 +148,10 @@ export function drawCircle(args){
         console.error("Invalid lineWidth value", deepArgs.lineWidth)
         return
     }
+    if(deepArgs.drawFuncs.constructor.name != "Array"){
+        console.error("Invalid drawFuncs value", deepArgs.drawFuncs)
+        return
+    }
 
     // sets the colors
     ctx.strokeStyle = deepArgs.stroke
@@ -169,6 +163,10 @@ export function drawCircle(args){
     ctx.arc(deepArgs.x, deepArgs.y, deepArgs.radius, 0, 2 * Math.PI)
     ctx.stroke()
     ctx.fill()
+
+    deepArgs.drawFuncs.forEach((func) => {
+        func(args)
+    })
 }
 
 export function drawRect(args){
@@ -189,7 +187,10 @@ export function drawRect(args){
     deepArgs.stroke = args.stroke || 'RGBA(0, 0, 0, 0)'
     deepArgs.centered = args.centered || false
     deepArgs.lineWidth = args.lineWidth || 1
-    deepArgs.rotation = args.rotation || 0
+    deepArgs.rotation = args.rotation || args.piRotation * (180/Math.PI) || 0
+    deepArgs.xRotationOffset = args.xRotationOffset || 0
+    deepArgs.yRotationOffset = args.yRotationOffset || 0
+    deepArgs.drawFuncs = args.drawFuncs || []
 
     //validate inputs
     if(typeof deepArgs.x != "number"){
@@ -228,6 +229,18 @@ export function drawRect(args){
         console.error("Invalid rotation value", deepArgs.rotation)
         return
     }
+    if(typeof deepArgs.xRotationOffset != "number"){
+        console.error("Invalid xRotationOffset value", deepArgs.xRotationOffset)
+        return
+    }
+    if(typeof deepArgs.yRotationOffset != "number"){
+        console.error("Invalid yRotationOffset value", deepArgs.yRotationOffset)
+        return
+    }
+    if(deepArgs.drawFuncs.constructor.name != "Array"){
+        console.error("Invalid drawFuncs value", deepArgs.drawFuncs)
+        return
+    }
 
 
     // resizes circle if there is a stroke
@@ -253,13 +266,17 @@ export function drawRect(args){
     ctx.translate(-1 * (deepArgs.x + (deepArgs.width / 2)), -1 * (deepArgs.y + (deepArgs.height / 2)));
 
     // draw rectangle
-    ctx.fillRect(deepArgs.x, deepArgs.y, deepArgs.width, deepArgs.height)
-    ctx.strokeRect(deepArgs.x, deepArgs.y, deepArgs.width, deepArgs.height)
+    ctx.fillRect(deepArgs.x + deepArgs.xRotationOffset, deepArgs.y + deepArgs.yRotationOffset, deepArgs.width, deepArgs.height)
+    ctx.strokeRect(deepArgs.x + deepArgs.xRotationOffset, deepArgs.y+ deepArgs.yRotationOffset, deepArgs.width, deepArgs.height)
 
     // rotates the canvas back
     ctx.translate(deepArgs.x + (deepArgs.width / 2), deepArgs.y + (deepArgs.height / 2));
     ctx.rotate(-1 * (deepArgs.rotation * Math.PI / 180));
     ctx.translate(-1 * (deepArgs.x + (deepArgs.width / 2)), -1 * (deepArgs.y + (deepArgs.height / 2)));
+
+    deepArgs.drawFuncs.forEach((func) => {
+        func(args)
+    })
 }
 
 export function drawLine(args){
@@ -278,6 +295,7 @@ export function drawLine(args){
     deepArgs.y2 = args.y2 || 10
     deepArgs.stroke = args.stroke || 'RGBA(0, 0, 0, 0)'
     deepArgs.lineWidth = args.lineWidth || 1
+    deepArgs.drawFuncs = args.drawFuncs || []
 
     if(typeof deepArgs.x1 != "number"){
         console.error("Invalid x1 value", deepArgs.x1)
@@ -303,6 +321,10 @@ export function drawLine(args){
         console.error("Invalid lineWidth value", deepArgs.lineWidth)
         return
     }
+    if(deepArgs.drawFuncs.constructor.name != "Array"){
+        console.error("Invalid drawFuncs value", deepArgs.drawFuncs)
+        return
+    }
 
     // sets the colors
     ctx.fillStyle = deepArgs.fill
@@ -314,6 +336,147 @@ export function drawLine(args){
     ctx.moveTo(deepArgs.x1, deepArgs.y1)
     ctx.lineTo(deepArgs.x2, deepArgs.y2)
     ctx.stroke()
+
+    deepArgs.drawFuncs.forEach((func) => {
+        func(args)
+    })
+}
+
+export function drawText(args){
+
+    if(typeof args != "object"){
+        console.error("Invalid args value", args)
+        return
+    }
+
+    let deepArgs = {}
+
+    deepArgs.x = args.x || 10
+    deepArgs.y = args.y || 10
+    deepArgs.width = args.size || args.width || 0
+    deepArgs.height = args.size || args.height || 30
+    deepArgs.fill = args.fill || 'RGBA(0, 0, 0, 0)'
+    deepArgs.stroke = args.stroke || 'RGBA(0, 0, 0, 0)'
+    deepArgs.xCentered = args.centered || args.xCentered || false
+    deepArgs.yCentered = args.centered || args.yCentered || false
+    deepArgs.lineWidth = args.lineWidth || 1
+    deepArgs.rotation = args.rotation || args.piRotation * (180/Math.PI) || 0
+    deepArgs.xRotationOffset = args.xRotationOffset || 0
+    deepArgs.yRotationOffset = args.yRotationOffset || 0
+    deepArgs.font = args.font || "Arial"
+    deepArgs.text = args.text || "Hello World"
+    deepArgs.drawFuncs = args.drawFuncs || []
+
+    //validate inputs
+    if(typeof deepArgs.x != "number"){
+        console.error("Invalid x value", deepArgs.x)
+        return
+    }
+    if(typeof deepArgs.y != "number"){
+        console.error("Invalid y value", deepArgs.y)
+        return
+    }
+    if(typeof deepArgs.width != "number" || deepArgs.width < 0){
+        console.error("Invalid width value", deepArgs.width)
+        return
+    }
+    if(typeof deepArgs.height != "number" || deepArgs.height <= 0){
+        console.error("Invalid height value", deepArgs.height)
+        return
+    }
+    if(typeof deepArgs.fill != "string"){
+        console.error("Invalid fill value", deepArgs.fill)
+        return
+    }
+    if(typeof deepArgs.stroke != "string"){
+        console.error("Invalid stroke value", deepArgs.stroke)
+        return
+    }
+    if(typeof deepArgs.xCentered != "boolean"){
+        console.error("Invalid xCentered value", deepArgs.xCentered)
+        return
+    }
+    if(typeof deepArgs.yCentered != "boolean"){
+        console.error("Invalid yCentered value", deepArgs.yCentered)
+        return
+    }
+    if(typeof deepArgs.lineWidth != "number" || deepArgs.lineWidth <= 0){
+        console.error("Invalid lineWidth value", deepArgs.lineWidth)
+        return
+    }
+    if(typeof deepArgs.rotation != "number"){
+        console.error("Invalid rotation value", deepArgs.rotation)
+        return
+    }
+    if(typeof deepArgs.xRotationOffset != "number"){
+        console.error("Invalid xRotationOffset value", deepArgs.xRotationOffset)
+        return
+    }
+    if(typeof deepArgs.yRotationOffset != "number"){
+        console.error("Invalid yRotationOffset value", deepArgs.yRotationOffset)
+        return
+    }
+    if(typeof deepArgs.font != "string"){
+        console.error("Invalid font value", deepArgs.font)
+        return
+    }
+    if(typeof deepArgs.text != "string" || deepArgs.text == ""){
+        console.error("Invalid text value", deepArgs.text)
+        return
+    }
+    if(deepArgs.drawFuncs.constructor.name != "Array"){
+        console.error("Invalid drawFuncs value", deepArgs.drawFuncs)
+        return
+    }
+
+
+    if(deepArgs.xCentered){
+        ctx.textAlign = "center"
+    }else{
+        ctx.textAlign = "left"
+    }
+
+    if(deepArgs.yCentered){
+        ctx.textBaseline = "middle"
+    }else{
+        ctx.textBaseline = "alphabetic"
+    }
+
+    ctx.fillStyle = deepArgs.fill
+    ctx.strokeStyle = deepArgs.stroke
+    ctx.lineWidth = deepArgs.lineWidth
+
+    // rotates the canvas centered on the center of rect
+    ctx.translate(deepArgs.x, deepArgs.y);
+    ctx.rotate(deepArgs.rotation * Math.PI / 180);
+    ctx.translate(-1 * deepArgs.x, -1 * deepArgs.y);
+
+    ctx.font = `${deepArgs.height}px ${deepArgs.font}`
+
+    let xScale = 1
+
+    if(deepArgs.width != 0){
+        let measuredWidth = ctx.measureText(deepArgs.text).width
+        if(measuredWidth > deepArgs.width) {
+            xScale = deepArgs.width / measuredWidth
+        }
+    }
+    ctx.save()
+    ctx.scale(xScale, 1)
+
+    ctx.fillText(deepArgs.text, (deepArgs.x + deepArgs.xRotationOffset) / xScale, deepArgs.y + deepArgs.yRotationOffset)
+    ctx.strokeText(deepArgs.text, (deepArgs.x + deepArgs.xRotationOffset) / xScale, deepArgs.y + deepArgs.yRotationOffset)
+
+    ctx.restore()
+
+    // rotates the canvas back
+    ctx.translate(deepArgs.x, deepArgs.y);
+    ctx.rotate(-1 * (deepArgs.rotation * Math.PI / 180));
+    ctx.translate(-1 * deepArgs.x, -1 * deepArgs.y);
+
+    deepArgs.drawFuncs.forEach((func) => {
+        func(args)
+    })
 }
 
 
@@ -345,6 +508,16 @@ export function getLinesToConnectAll(things1, things2, sharedArgs){
         }
 
         for(const item2 of things2){
+            if(item1.x == item2.x && item1.y == item2.y){
+                continue
+            }
+
+            let filteredLines = lines.filter((singleLine) => {
+                return (singleLine.x1 == item2.x) && (singleLine.y1 == item2.y) && (singleLine.x2 == item1.x) && (singleLine.y2 == item1.y)
+            })
+            if(filteredLines.length > 0){
+                continue
+            }
 
             // validate inputs
             if(typeof item2 != "object"){
@@ -382,7 +555,11 @@ export function getLinesToConnectAll(things1, things2, sharedArgs){
                 x1: item1.x, 
                 y1: item1.y,
                 x2: item2.x,
-                y2: item2.y
+                y2: item2.y,
+                originalArgs: [
+                    item1,
+                    item2
+                ]
             })
         }
     }
@@ -482,9 +659,7 @@ export function isPointInsideCircle(circle, point){
         return
     }
 
-    let xDist = deepArgs.x - deepArgs.pointX
-    let yDist = deepArgs.y - deepArgs.pointY
-    let dist = Math.sqrt((xDist*xDist) + (yDist*yDist))
+    let dist = getDist(deepArgs.x, deepArgs.y, deepArgs.pointX, deepArgs.pointY)
 
     return dist <= deepArgs.radius
 }
@@ -573,5 +748,11 @@ export function isPointInsideRect(rect, point){
     ctx.translate(-1 * (deepArgs.x + (deepArgs.width / 2)), -1 * (deepArgs.y + (deepArgs.height / 2)));
 
     return isPointInPath
+}
+
+export function getDist(x1, y1, x2, y2){
+    let xDist = x2 - x1
+    let yDist = y2 - y1
+    return Math.sqrt((xDist*xDist) + (yDist*yDist))
 }
 
